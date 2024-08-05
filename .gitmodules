@@ -1,0 +1,3 @@
+[submodule "rp2350/sfe_pico_alloc/tlsf"]
+	path = rp2350/sfe_pico_alloc/tlsf
+	url = git@github.com:espressif/tlsf.git
