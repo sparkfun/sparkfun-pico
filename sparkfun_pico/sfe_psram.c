@@ -54,7 +54,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 /// @param psram_cs_pin The pin that the PSRAM is connected to
 /// @return size_t The size of the PSRAM
 ///
-size_t __no_inline_not_in_flash_func(setup_psram)(uint psram_cs_pin)
+static size_t __no_inline_not_in_flash_func(setup_psram)(uint32_t psram_cs_pin)
 {
 
     // Set the PSRAM CS pin in the SDK
@@ -95,7 +95,7 @@ size_t __no_inline_not_in_flash_func(setup_psram)(uint psram_cs_pin)
     for (size_t i = 0; i < 7; i++)
     {
         if (i == 0)
-            qmi_hw->direct_tx = 0x9f; // Read ID command for PSRAM
+            qmi_hw->direct_tx = 0x9f;
         else
             qmi_hw->direct_tx = 0xff;
 
@@ -119,7 +119,7 @@ size_t __no_inline_not_in_flash_func(setup_psram)(uint psram_cs_pin)
     qmi_hw->direct_csr &= ~(QMI_DIRECT_CSR_ASSERT_CS1N_BITS | QMI_DIRECT_CSR_EN_BITS);
 
     // valid?
-    if (kgd != 0x5D) // PSRAM ID - from data sheet  : 'b0101_1101` = 0x5D
+    if (kgd != 0x5D)
     {
         restore_interrupts(intr_stash);
         return psram_size; // returns 0 size
@@ -193,8 +193,6 @@ size_t __no_inline_not_in_flash_func(setup_psram)(uint psram_cs_pin)
 
     // Calculate the size of the PSRAM.
     psram_size = 1024 * 1024; // 1 MiB
-
-    // the size is a 3 bit field - top 3 bits of eid. 2 = 8Mbit, 1 = 4Mbit, 0 = 2Mbit
     uint8_t size_id = eid >> 5;
     if (eid == 0x26 || size_id == 2)
         psram_size *= 8;
@@ -208,4 +206,10 @@ size_t __no_inline_not_in_flash_func(setup_psram)(uint psram_cs_pin)
 
     restore_interrupts(intr_stash);
     return psram_size;
+}
+// public interface
+
+size_t sfe_setup_psram(uint32_t psram_cs_pin)
+{
+    return setup_psram(psram_cs_pin);
 }

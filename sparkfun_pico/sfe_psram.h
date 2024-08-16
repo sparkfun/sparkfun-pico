@@ -29,7 +29,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #ifndef _SFE_PSRAM_H_
 #define _SFE_PSRAM_H_
-#include "pico.h"
+#include <stdint.h>
 #include <stdlib.h>
 
 /// @brief The setup_psram function - note that this is not in flash
@@ -37,6 +37,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 /// @param psram_cs_pin The pin that the PSRAM is connected to
 /// @return size_t The size of the PSRAM
 ///
-size_t __no_inline_not_in_flash_func(setup_psram)(uint psram_cs_pin)
+size_t sfe_setup_psram(uint32_t psram_cs_pin);
 
 #endif

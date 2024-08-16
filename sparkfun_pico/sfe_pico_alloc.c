@@ -58,6 +58,12 @@ static size_t _psram_size = 0;
 
 static bool _bInitalized = false;
 
+#if defined(SFE_PICO_ALLOC_WRAP)
+static bool _bUseHeapPool = true;
+#else
+static bool _bUseHeapPool = false;
+#endif
+
 //-------------------------------------------------------------------------------
 // Allocator Routines
 //-------------------------------------------------------------------------------
@@ -67,29 +73,49 @@ static bool _bInitalized = false;
 #define PSRAM_LOCATION _u(0x11000000)
 
 // Internal function that init's the allocator
-static bool sfe_pico_alloc_init()
+
+// TODO: Make this configurable - heap or not via a parameter. Default will have this key off the #define
+
+bool sfe_pico_alloc_init(void)
 {
     if (_bInitalized)
         return true;
 
-    // First, our sram pool. External heap symbols from rpi pico-sdk
-    extern unsigned char __heap_start;
-    extern unsigned char __heap_end;
-    // size
-    size_t sram_size = (size_t)(&__heap_end - &__heap_start) * sizeof(uint32_t);
-
-    _mem_heap = tlsf_create_with_pool((void *)&__heap_start, sram_size, 64 * 1024 * 1024);
-    _mem_sram_pool = tlsf_get_pool(_mem_heap);
+    _mem_heap = NULL;
+    _mem_sram_pool = NULL;
+    _mem_psram_pool = NULL;
 
 #ifndef SFE_RP2350_XIP_CSI_PIN
     printf("PSRAM CS pin not defined - check board file or specify board on build. unable to use PSRAM\n");
+    _psram_size = 0;
 #else
     // Setup PSRAM if we have it.
-    _psram_size = setup_psram(SFE_RP2350_XIP_CSI_PIN);
-
-    if (_psram_size > 0)
-        _mem_psram_pool = tlsf_add_pool(_mem_heap, (void *)PSRAM_LOCATION, _psram_size);
+    _psram_size = sfe_setup_psram(SFE_RP2350_XIP_CSI_PIN);
 #endif
+    printf("PSRAM size: %u\n", _psram_size);
+    if (!_bUseHeapPool)
+    {
+        if (_psram_size > 0)
+        {
+            _mem_heap = tlsf_create_with_pool((void *)PSRAM_LOCATION, _psram_size, 64 * 1024 * 1024);
+            _mem_psram_pool = tlsf_get_pool(_mem_heap);
+        }
+    }
+    else
+    {
+        // First, our sram pool. External heap symbols from rpi pico-sdk
+        extern uint32_t __heap_start;
+        extern uint32_t __heap_end;
+        // size
+        size_t sram_size = (size_t)(&__heap_end - &__heap_start) * sizeof(uint32_t);
+        // printf("point 2 start: %x, end %x, size %X %u\n", &__heap_start, &__heap_end, sram_size, sram_size);
+
+        _mem_heap = tlsf_create_with_pool((void *)&__heap_start, sram_size, 64 * 1024 * 1024);
+        _mem_sram_pool = tlsf_get_pool(_mem_heap);
+
+        if (_psram_size > 0)
+            _mem_psram_pool = tlsf_add_pool(_mem_heap, (void *)PSRAM_LOCATION, _psram_size);
+    }
     _bInitalized = true;
     return true;
 }
@@ -98,28 +124,28 @@ static bool sfe_pico_alloc_init()
 
 void *sfe_mem_malloc(size_t size)
 {
-    if (!sfe_pico_alloc_init())
+    if (!sfe_pico_alloc_init() || !_mem_heap)
         return NULL;
     return tlsf_malloc(_mem_heap, size);
 }
 
 void sfe_mem_free(void *ptr)
 {
-    if (!sfe_pico_alloc_init())
+    if (!sfe_pico_alloc_init() || !_mem_heap)
         return;
     tlsf_free(_mem_heap, ptr);
 }
 
 void *sfe_mem_realloc(void *ptr, size_t size)
 {
-    if (!sfe_pico_alloc_init())
+    if (!sfe_pico_alloc_init() || !_mem_heap)
         return NULL;
     return tlsf_realloc(_mem_heap, ptr, size);
 }
 
 void *sfe_mem_calloc(size_t num, size_t size)
 {
-    if (!sfe_pico_alloc_init())
+    if (!sfe_pico_alloc_init() || !_mem_heap)
         return NULL;
     void *ptr = tlsf_malloc(_mem_heap, num * size);
     if (ptr)
@@ -138,19 +164,68 @@ static bool max_free_walker(void *ptr, size_t size, int used, void *user)
 }
 size_t sfe_mem_max_free_size(void)
 {
-    if (!sfe_pico_alloc_init())
+    if (!sfe_pico_alloc_init() || !_mem_heap)
         return 0;
     size_t max_free = 0;
-    tlsf_walk_pool(_mem_sram_pool, max_free_walker, &max_free);
+
+    // walk our pools
+    if (_mem_sram_pool)
+        tlsf_walk_pool(_mem_sram_pool, max_free_walker, &max_free);
+
     if (_mem_psram_pool)
         tlsf_walk_pool(_mem_psram_pool, max_free_walker, &max_free);
 
     return max_free;
 }
 
+static bool memory_size_walker(void *ptr, size_t size, int used, void *user)
+{
+    *((size_t *)user) += size;
+    return true;
+}
+
+size_t sfe_mem_size(void)
+{
+    if (!sfe_pico_alloc_init() || !_mem_heap)
+        return 0;
+    size_t total_size = 0;
+
+    // walk our pools
+    if (_mem_sram_pool)
+        tlsf_walk_pool(_mem_sram_pool, memory_size_walker, &total_size);
+
+    if (_mem_psram_pool)
+        tlsf_walk_pool(_mem_psram_pool, memory_size_walker, &total_size);
+
+    return total_size;
+}
+
+static bool memory_used_walker(void *ptr, size_t size, int used, void *user)
+{
+    if (used)
+        *((size_t *)user) += size;
+    return true;
+}
+
+size_t sfe_mem_used(void)
+{
+    if (!sfe_pico_alloc_init() || !_mem_heap)
+        return 0;
+    size_t total_size = 0;
+
+    // walk our pools
+    if (_mem_sram_pool)
+        tlsf_walk_pool(_mem_sram_pool, memory_used_walker, &total_size);
+
+    if (_mem_psram_pool)
+        tlsf_walk_pool(_mem_psram_pool, memory_used_walker, &total_size);
+
+    return total_size;
+}
+
 // Wrappers for the standard malloc/free/realloc/calloc routines - set the wrapper functions
 // in the cmake file ...
-
+#if defined(SFE_PICO_ALLOC_WRAP)
 void *__wrap_malloc(size_t size)
 {
     return sfe_mem_malloc(size);
@@ -167,3 +242,4 @@ void *__wrap_calloc(size_t num, size_t size)
 {
     return sfe_mem_calloc(num, size);
 }
+#endif

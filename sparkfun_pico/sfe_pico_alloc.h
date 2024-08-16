@@ -40,12 +40,17 @@ extern "C"
     void *sfe_mem_realloc(void *ptr, size_t size);
     void *sfe_mem_calloc(size_t num, size_t size);
     size_t sfe_mem_max_free_size(void);
+    size_t sfe_mem_size(void);
+    size_t sfe_mem_used(void);
+    bool sfe_pico_alloc_init();
 
+#if defined(SFE_PICO_ALLOC_WRAP)
     // c allocator wrappers - define for use as a wrapper if specified
     void *__wrap_malloc(size_t size);
     void __wrap_free(void *ptr);
     void *__wrap_realloc(void *ptr, size_t size);
     void *__wrap_calloc(size_t num, size_t size);
+#endif
 #ifdef __cplusplus
 }
 #endif
