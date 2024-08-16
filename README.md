@@ -48,6 +48,6 @@ This example detects the PSRAM available on the board, and adds it as well as th
 
 A "Two-Level Segregated Fit" (flsf) allocator is used from [here](https://github.com/espressif/tlsf).
 
-#### [test_qflash](examples/test_qflash)
+#### [set_qflash](examples/set_qflash)
 
 This is a simple example that is used to verify the Quad SPI bit is set in the flash IC used on the attached board. It doesn't require the use of the ```sparkfun_pico``` library, but is helpful during board development and fits with the goals of this repository.
