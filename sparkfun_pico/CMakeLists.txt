@@ -1,9 +1,3 @@
-# add_library( sfe_pico_alloc INTERFACE ${CMAKE_CURRENT_LIST_DIR}/sfe_pico_alloc.c
-# ${CMAKE_CURRENT_LIST_DIR}/sfe_pico_alloc.h ${CMAKE_CURRENT_LIST_DIR}/sfe_pico_boards.h
-# ${CMAKE_CURRENT_LIST_DIR}/sfe_psram.h ${CMAKE_CURRENT_LIST_DIR}/sfe_psram.c
-# ${CMAKE_CURRENT_LIST_DIR}/tlsf/tlsf.c ${CMAKE_CURRENT_LIST_DIR}/tlsf/tlsf.h
-# ${CMAKE_CURRENT_LIST_DIR}/tlsf/tlsf_common.h
-# ${CMAKE_CURRENT_LIST_DIR}/tlsf/tlsf_block_functions.h)
 
 add_library(sparkfun_pico INTERFACE)
 
