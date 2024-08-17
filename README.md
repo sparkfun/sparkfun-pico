@@ -108,9 +108,11 @@ The sparkfun_pico library supports the following functions:
 ### PSRAM detection
 
 > [!NOTE]
-> SparkFun RP2350 boards the PSRAM IC detailed [here](https://cdn.sparkfun.com/assets/0/a/3/d/e/APS6404L_3SQR_Datasheet.pdf)
+> The SparkFun RP2350 boards the PSRAM IC is detailed [here](https://cdn.sparkfun.com/assets/0/a/3/d/e/APS6404L_3SQR_Datasheet.pdf)
 
 These functions are exported from the file [sfe_psram.h](sparkfun_pico/sfe_psram.h)
+
+#### Setup
 
 ```C
 size_t sfe_setup_psram(uint32_t psram_cs_pin);
@@ -123,6 +125,108 @@ This function is used to detect the presence of PSRAM on the board and return th
 |psram_cs_pin| The CS pin used by the PSRAM IC on the board|
 
 Additionally, if PSRAM is detected, it is setup correctly for use by the RP2350.
+
+#### Update Timing
+
+```C
+void sfe_psram_update_timing(void);
+```
+
+This function is used to update the timing settings used by the pico-sdk to communicate with the PSRAM IC. These values are set during the PSRAM setup process based on the system clock. If the system clock value is changed (overclocking!) calling this method will adjust the PSRAM settings for use with the new clock frequency values.
+
+### Memory Allocation Functions
+
+The following functions are available when using the sparkfun_pico memory allocator with PSRAM. They mimic the standard C memory allocation functions and are defined i n the include file [sfe_pico_alloc.h](sparkfun_pico/sfe_pico_alloc.h)
+
+#### Initialization
+
+```C
+bool sfe_pico_alloc_init();
+```
+
+The function detect available PSRAM and initializes the allocator. If the system is setup for also using SRAM as part of the wrapping of the built in allocation functions, the available heap is added to the allocator also.
+
+> [!NOTE]
+> Calling this function is optional - it is called by default on the first call to a memory allocation function.
+
+#### Memory Allocation
+
+```C
+void *sfe_mem_malloc(size_t size);
+```
+
+Allocate a block of memory of the requested size.
+
+|Parameter|Description|
+|---|---|
+|size| The number of bytes to allocate|
+|return | void pointer to the allocated memory. NULL if allocation failed|
+
+#### Memory De-allocation
+
+```C
+void sfe_mem_free(void *ptr);
+```
+
+Free a block of memory.
+
+|Parameter|Description|
+|---|---|
+|ptr| The pointer to the memory to free|
+
+#### Memory Re-allocation
+
+```C
+void *sfe_mem_realloc(void *ptr, size_t size);
+```
+
+Re-allocate a block of memory to the given size using the following methodology:
+
+* Expanding or contracting the existing area pointed to by ptr, if possible. The contents of the area remain unchanged up to the lesser of the new and old sizes. If the area is expanded, the contents of the new part of the array are undefined.
+* Allocating a new memory block of size size bytes, copying memory area with size equal the lesser of the new and the old sizes, and freeing the old block.
+
+|Parameter|Description|
+|---|---|
+| ptr | A previously allocated block of memory. If NULL, this methods behaves like standard malloc|
+|size| The number of bytes to re-allocate to|
+|return | void pointer to the allocated memory. NULL if allocation failed|
+
+#### Memory Allocation and Clear
+
+```C
+void *sfe_mem_calloc(size_t num, size_t size);
+```
+
+Allocate a block of memory of the requested size and zero/clear it out
+
+|Parameter|Description|
+|---|---|
+|size| The number of bytes to allocate|
+|return | void pointer to the allocated memory. NULL if allocation failed|
+
+#### Maximum Free Block Size
+
+```C
+size_t sfe_mem_max_free_size(void);
+```
+
+This function returns the maximum free block size available for allocation.
+
+#### Total Memory Pool Size
+
+```C
+size_t sfe_mem_size(void);
+```
+
+This function returns the total size of the available memory across all memory pools available to the allocator.
+
+#### Total Memory Used
+
+```C
+size_t sfe_mem_used(void);
+```
+
+This function returns the total size of memory used.
 
 ## The Examples
 
