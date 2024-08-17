@@ -92,7 +92,7 @@ bool sfe_pico_alloc_init(void)
     // Setup PSRAM if we have it.
     _psram_size = sfe_setup_psram(SFE_RP2350_XIP_CSI_PIN);
 #endif
-    printf("PSRAM size: %u\n", _psram_size);
+    // printf("PSRAM size: %u\n", _psram_size);
     if (!_bUseHeapPool)
     {
         if (_psram_size > 0)
