@@ -81,26 +81,6 @@ Mostly the use of this board file is automatic, not requiring direct access, but
 cmake .. -DPICO_BOARD=sparkfun_promicro_rp2350
 ```
 
-### Examples - General Use
-
-For a majority of the examples provided in this repository - especially those related to the use of PSRAM on the RP2350 - the following steps are used to build the examples:
-
-* Clone and setup this repo as noted above
-* Copy in the ```sparkfun_pico``` library as noted above
-
-At this point, the examples are built following the standard ```pico-sdk``` build process.
-
->[!NOTE]
-> Specify the target SparkFun Board when calling cmake.
-
-```sh
-export PICO_SDK_PATH=<the path to the pico-sdk>
-cd examples/has_psram
-mkdir build
-cmake .. -DPICO_BOARD=sparkfun_promicro_rp2350
-make
-```
-
 ## The sparkfun_pico API
 
 The sparkfun_pico library supports the following functions:
@@ -229,6 +209,26 @@ size_t sfe_mem_used(void);
 This function returns the total size of memory used.
 
 ## The Examples
+
+### Examples - General Use
+
+For a majority of the examples provided in this repository - especially those related to the use of PSRAM on the RP2350 - the following steps are used to build the examples:
+
+* Clone and setup this repo as noted above
+* Copy in the ```sparkfun_pico``` library as noted above
+
+At this point, the examples are built following the standard ```pico-sdk``` build process.
+
+>[!NOTE]
+> Specify the target SparkFun Board when calling cmake.
+
+```sh
+export PICO_SDK_PATH=<the path to the pico-sdk>
+cd examples/has_psram
+mkdir build
+cmake .. -DPICO_BOARD=sparkfun_promicro_rp2350
+make
+```
 
 This repository contains the following examples:
 
