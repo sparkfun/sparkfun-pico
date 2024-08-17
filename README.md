@@ -103,6 +103,7 @@ This function is used to detect the presence of PSRAM on the board and return th
 |Parameter|Description|
 |---|---|
 |psram_cs_pin| The CS pin used by the PSRAM IC on the board|
+|return | The size of the PSRAM detected in bytes. If no PSRAM detected the value of 0 is returned|
 
 Additionally, if PSRAM is detected, it is setup correctly for use by the RP2350.
 
