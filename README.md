@@ -88,7 +88,7 @@ The sparkfun_pico library supports the following functions:
 ### PSRAM detection
 
 > [!NOTE]
-> The SparkFun RP2350 boards the PSRAM IC is detailed [here](https://cdn.sparkfun.com/assets/0/a/3/d/e/APS6404L_3SQR_Datasheet.pdf)
+> The SparkFun RP2350 boards us the PSRAM IC which is detailed [here](https://cdn.sparkfun.com/assets/0/a/3/d/e/APS6404L_3SQR_Datasheet.pdf)
 
 These functions are exported from the file [sfe_psram.h](sparkfun_pico/sfe_psram.h)
 
