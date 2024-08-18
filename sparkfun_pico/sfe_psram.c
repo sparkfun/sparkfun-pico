@@ -37,7 +37,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "hardware/sync.h"
 #include "pico/binary_info.h"
 #include "pico/flash.h"
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -55,26 +54,26 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 // Details on the PSRAM IC that are used during setup/configuration of PSRAM on SparkFun RP2350 boards.
 
-// max select pulse width = 8us
-#define SFE_PSRAM_MAX_SELECT 0.000008f
+// max select pulse width = 8us => 125000 Hz
+const uint32_t SFE_PSRAM_MAX_SELECT_HZ = 125000;
 
-// min deselect pulse width = 50ns
-#define SFE_PSRAM_MIN_DESELECT 0.000000050f
+// min deselect pulse width = 50ns => 20000000 Hz
+const uint32_t SFE_PSRAM_MIN_DESELECT_HZ = 20000000;
 
 // from psram datasheet - max Freq at 3.3v
-#define SFE_PSRAM_MAX_SCK_HZ 109000000.f
+const uint32_t SFE_PSRAM_MAX_SCK_HZ = 109000000;
 
 // PSRAM SPI command codes
-#define PSRAM_CMD_QUAD_END 0xF5
-#define PSRAM_CMD_QUAD_ENABLE 0x35
-#define PSRAM_CMD_READ_ID 0x9F
-#define PSRAM_CMD_RSTEN 0x66
-#define PSRAM_CMD_RST 0x99
-#define PSRAM_CMD_QUAD_READ 0xEB
-#define PSRAM_CMD_QUAD_WRITE 0x38
-#define PSRAM_CMD_NOOP 0xFF
+const uint8_t PSRAM_CMD_QUAD_END = 0xF5;
+const uint8_t PSRAM_CMD_QUAD_ENABLE = 0x35;
+const uint8_t PSRAM_CMD_READ_ID = 0x9F;
+const uint8_t PSRAM_CMD_RSTEN = 0x66;
+const uint8_t PSRAM_CMD_RST = 0x99;
+const uint8_t PSRAM_CMD_QUAD_READ = 0xEB;
+const uint8_t PSRAM_CMD_QUAD_WRITE = 0x38;
+const uint8_t PSRAM_CMD_NOOP = 0xFF;
 
-#define PSRAM_ID 0x5D
+const uint8_t PSRAM_ID = 0x5D;
 
 //-----------------------------------------------------------------------------
 /// @brief Communicate directly with the PSRAM IC - validate it is present and return the size
@@ -159,19 +158,32 @@ static size_t __no_inline_not_in_flash_func(get_psram_size)(void)
 
 static void __no_inline_not_in_flash_func(set_psram_timing)(void)
 {
-    // Get secs / cycle for the system clock - get before disabling interrupts
-    float sysHz = clock_get_hz(clk_sys);
-    float secsPerCycle = 1.0f / sysHz;
+    // Get secs / cycle for the system clock - get before disabling interrupts.
+    // Note: -1 to support int math below
+    uint32_t sysHz = (uint32_t)clock_get_hz(clk_sys) - 1;
 
-    volatile uint8_t clockDivider = (uint8_t)ceil(sysHz / SFE_PSRAM_MAX_SCK_HZ);
+    // Calculate the clock divider - goal to get clock used for PSRAM <= what
+    // the PSRAM IC can handle - which is defined in SFE_PSRAM_MAX_SCK_HZ
+    volatile uint8_t clockDivider = (sysHz + SFE_PSRAM_MAX_SCK_HZ) / SFE_PSRAM_MAX_SCK_HZ;
 
     uint32_t intr_stash = save_and_disable_interrupts();
 
-    // the maxSelect value is defined in units of 64 clock cycles. = PSRAM MAX Select time/secsPerCycle / 64
-    volatile uint8_t maxSelect = (uint8_t)round(SFE_PSRAM_MAX_SELECT / secsPerCycle / 64.0f);
+    // the maxSelect value is defined in units of 64 clock cycles or
+    //  clkHz => Clock Hz (cycles/sec)
+    //  maxSelectHz = 125000 => 8us (cycles/sec)
+    //  Max Select Unit = 64 cycles
+    // Note - since max is 8us, we keep maxSelect just under this value - so take one off numerator
+    //  maxSelect = (maxSelectHz - 1) / clkHz / 64 = (maxSelectHz - 1) / (clkHz * 64)
+    volatile uint8_t maxSelect = sysHz / (SFE_PSRAM_MAX_SELECT_HZ * 64);
 
-    // minDeselect time - in system clock cycle
-    volatile uint8_t minDeselect = (uint8_t)round(SFE_PSRAM_MIN_DESELECT / secsPerCycle);
+    // SFE_PSRAM_MIN_DESELECT_HZ = 20000000;
+    //  minDeselect time - in system clock cycle
+    //  clkHz => Clock Hz (cycles/sec)
+    //  minDeselectHz = 20000000 => 50ns (cycles/sec)
+    //  Note - Since min is 50ns, we keep minDeselect to be above this value => ceil(sysHz/minDeselectHz),
+    //         so add minDeselectHz -1 to numerator
+
+    volatile uint8_t minDeselect = (sysHz + SFE_PSRAM_MIN_DESELECT_HZ) / SFE_PSRAM_MIN_DESELECT_HZ;
 
     // printf("Max Select: %d, Min Deselect: %d, clock divider: %d\n", maxSelect, minDeselect, clockDivider);
 
