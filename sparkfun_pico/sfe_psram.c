@@ -54,11 +54,18 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 // Details on the PSRAM IC that are used during setup/configuration of PSRAM on SparkFun RP2350 boards.
 
-// max select pulse width = 8us => 125000 Hz
-const uint32_t SFE_PSRAM_MAX_SELECT_HZ = 125000;
+// For PSRAM timing calculations - to use int math, we work in femto seconds (fs) (1e-15),
+// NOTE: This idea is from micro python work on psram..
 
-// min deselect pulse width = 50ns => 20000000 Hz
-const uint32_t SFE_PSRAM_MIN_DESELECT_HZ = 20000000;
+#define SFE_SEC_TO_FS 1000000000000000ll
+
+// max select pulse width = 8us => 8e6 ns => 8000 ns => 8000 * 1e6 fs => 8000e6 fs
+// Additionally, the MAX select is in units of 64 clock cycles - will use a constant that
+// takes this into account - so 8000e6 fs / 64 = 125e6 fs
+const uint32_t SFE_PSRAM_MAX_SELECT_FS64 = 125000000;
+
+// min deselect pulse width = 50ns => 50 * 1e6 fs => 50e7 fs
+const uint32_t SFE_PSRAM_MIN_DESELECT_FS = 50000000;
 
 // from psram datasheet - max Freq at 3.3v
 const uint32_t SFE_PSRAM_MAX_SCK_HZ = 109000000;
@@ -159,31 +166,27 @@ static size_t __no_inline_not_in_flash_func(get_psram_size)(void)
 static void __no_inline_not_in_flash_func(set_psram_timing)(void)
 {
     // Get secs / cycle for the system clock - get before disabling interrupts.
-    // Note: -1 to support int math below
-    uint32_t sysHz = (uint32_t)clock_get_hz(clk_sys) - 1;
+    uint32_t sysHz = (uint32_t)clock_get_hz(clk_sys);
 
     // Calculate the clock divider - goal to get clock used for PSRAM <= what
     // the PSRAM IC can handle - which is defined in SFE_PSRAM_MAX_SCK_HZ
-    volatile uint8_t clockDivider = (sysHz + SFE_PSRAM_MAX_SCK_HZ) / SFE_PSRAM_MAX_SCK_HZ;
+    volatile uint8_t clockDivider = (sysHz + SFE_PSRAM_MAX_SCK_HZ - 1) / SFE_PSRAM_MAX_SCK_HZ;
 
     uint32_t intr_stash = save_and_disable_interrupts();
 
-    // the maxSelect value is defined in units of 64 clock cycles or
-    //  clkHz => Clock Hz (cycles/sec)
-    //  maxSelectHz = 125000 => 8us (cycles/sec)
-    //  Max Select Unit = 64 cycles
-    // Note - since max is 8us, we keep maxSelect just under this value - so take one off numerator
-    //  maxSelect = (maxSelectHz - 1) / clkHz / 64 = (maxSelectHz - 1) / (clkHz * 64)
-    volatile uint8_t maxSelect = sysHz / (SFE_PSRAM_MAX_SELECT_HZ * 64);
+    // Get the clock femto seconds per cycle.
 
-    // SFE_PSRAM_MIN_DESELECT_HZ = 20000000;
+    uint32_t fsPerCycle = SFE_SEC_TO_FS / sysHz;
+
+    // the maxSelect value is defined in units of 64 clock cycles
+    // So maxFS / (64 * fsPerCycle) = maxSelect = SFE_PSRAM_MAX_SELECT_FS64/fsPerCycle
+    volatile uint8_t maxSelect = SFE_PSRAM_MAX_SELECT_FS64 / fsPerCycle;
+
     //  minDeselect time - in system clock cycle
-    //  clkHz => Clock Hz (cycles/sec)
-    //  minDeselectHz = 20000000 => 50ns (cycles/sec)
-    //  Note - Since min is 50ns, we keep minDeselect to be above this value => ceil(sysHz/minDeselectHz),
-    //         so add minDeselectHz -1 to numerator
+    // Must be higher than 50ns (min deselect time for PSRAM) so add a fsPerCycle - 1 to round up
+    // So minFS/fsPerCycle = minDeselect = SFE_PSRAM_MIN_DESELECT_FS/fsPerCycle
 
-    volatile uint8_t minDeselect = (sysHz + SFE_PSRAM_MIN_DESELECT_HZ) / SFE_PSRAM_MIN_DESELECT_HZ;
+    volatile uint8_t minDeselect = (SFE_PSRAM_MIN_DESELECT_FS + fsPerCycle - 1) / fsPerCycle;
 
     // printf("Max Select: %d, Min Deselect: %d, clock divider: %d\n", maxSelect, minDeselect, clockDivider);
 
