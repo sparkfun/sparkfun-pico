@@ -1,10 +1,10 @@
-
 add_library(sparkfun_pico INTERFACE)
 
 target_sources(
     sparkfun_pico
     INTERFACE ${CMAKE_CURRENT_LIST_DIR}/sfe_pico_alloc.c
               ${CMAKE_CURRENT_LIST_DIR}/sfe_pico_alloc.h
+              ${CMAKE_CURRENT_LIST_DIR}/sfe_pico.h
               ${CMAKE_CURRENT_LIST_DIR}/sfe_pico_boards.h
               ${CMAKE_CURRENT_LIST_DIR}/sfe_psram.h
               ${CMAKE_CURRENT_LIST_DIR}/sfe_psram.c
