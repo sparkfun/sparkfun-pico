@@ -6,6 +6,12 @@ The repository contains a set of utilities, structured for use with the Raspberr
 
 A majority of the functionality outlined in this repository is contained in the folder ```sparkfun_pico```. This folder is structured as a ```cmake``` library, ready for use by the ```pico-sdk``` build environment.
 
+The general pattern when using this library is:
+
+* Copy the ```sparkfun_pico``` folder and all it's contents to your ```pico-sdk``` project directory.
+* Update the projects ```CMakeList.txt``` file to add the ```sparkfun_pico``` sub-directory, and potentially *malloc/free wrap directives* outlined below.
+* included the header file ```sparkfun_pico/sfe_pico.h``` in your projects source as needed.
+
 ### Add sparkfun_pico Library to a pico-sdk Project
 
 To use the library as part of the cmake build process of the ```pico-sdk```, perform the following:
@@ -83,7 +89,7 @@ cmake .. -DPICO_BOARD=sparkfun_promicro_rp2350
 
 ## The sparkfun_pico API
 
-The sparkfun_pico library supports the following functions:
+The sparkfun_pico library supports the following functions, with function signatures declared in [sparkfun_pico/sfe_pico.h](sparkfun_pico/sfe_pico.h):
 
 ### PSRAM detection
 
