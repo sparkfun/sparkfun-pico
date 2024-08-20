@@ -33,6 +33,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <stdlib.h>
 #include <string.h>
 
+#include "test_cpp.h"
+
 // main()
 
 static void memory_stats()
@@ -53,6 +55,7 @@ int main()
     sleep_ms(2000);
     printf("\n-----------------------------------------------------------\n");
     printf("SparkFun - Allocator test - starting\n");
+    printf("-----------------------------------------------------------\n");
     sleep_ms(2000);
 
     sfe_pico_alloc_init();
@@ -90,8 +93,25 @@ int main()
 
     printf("\nFreed a Meg using built in free\n");
     memory_stats();
+
+    // now c++ tests
+    printf("\nAllocate a C++ object w/ 1Meg buffer\n");
+    void *cpp_ptr = test_cpp_new();
+    if (!cpp_ptr)
+    {
+        printf("C++ allocation failed\n");
+        return 1;
+    }
+
+    memory_stats();
+
+    printf("\nDelete a C++ object w/ 1Meg buffer\n");
+    test_cpp_delete(cpp_ptr);
+    memory_stats();
+
 #endif
-    printf("DONE\n");
+    printf("-----------------------------------------------------------\n");
+    printf("<<Testing Complete>>\n");
     printf("-----------------------------------------------------------\n");
     while (1)
     {
