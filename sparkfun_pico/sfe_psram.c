@@ -67,7 +67,8 @@ const uint32_t SFE_PSRAM_MAX_SELECT_FS64 = 125000000;
 // min deselect pulse width = 50ns => 50 * 1e6 fs => 50e7 fs
 const uint32_t SFE_PSRAM_MIN_DESELECT_FS = 50000000;
 
-// from psram datasheet - max Freq at 3.3v
+// from psram datasheet - max Freq with VDDat 3.3v - SparkFun RP2350 boards run at 3.3v.
+// If VDD = 3.0 Max Freq is 133 Mhz
 const uint32_t SFE_PSRAM_MAX_SCK_HZ = 109000000;
 
 // PSRAM SPI command codes
