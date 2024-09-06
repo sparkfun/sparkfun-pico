@@ -13,6 +13,8 @@ target_sources(
               ${CMAKE_CURRENT_LIST_DIR}/tlsf/tlsf_common.h
               ${CMAKE_CURRENT_LIST_DIR}/tlsf/tlsf_block_functions.h)
 
+target_include_directories(sparkfun_pico INTERFACE ${CMAKE_CURRENT_LIST_DIR})
+
 # Are we wrapping the built in alloc functions?
 if (SFE_PICO_ALLOC_WRAP)
     pico_wrap_function(sparkfun_pico malloc)
